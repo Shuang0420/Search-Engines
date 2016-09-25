@@ -1,0 +1,4 @@
+indexPath=index_2
+retrievalAlgorithm=RankedBoolean
+queryFilePath=queries.txt
+trecEvalOutputPath=trec_eval
