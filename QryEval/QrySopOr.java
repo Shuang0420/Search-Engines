@@ -36,6 +36,16 @@ public double getScore (RetrievalModel r) throws IOException {
         }
 }
 
+
+
+public double getDefaultScore(RetrievalModel r, int docid) throws IOException {
+    double lambda = ((RetrievalModelIndri) r).lambda;
+    double mu = ((RetrievalModelIndri) r).mu;
+    return 0.0;
+}
+
+
+
 /**
  *  getScore for the UnrankedBoolean retrieval model.
  *  @param r The retrieval model that determines how scores are calculated.

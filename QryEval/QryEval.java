@@ -65,9 +65,10 @@ public static void main(String[] args) throws Exception {
         RetrievalModel model = initializeRetrievalModel (parameters);
 
         //  Perform experiments.
-        System.out.println(parameters.get("queryFilePath")+parameters.get("trecEvalOutputPath"));
+        //System.out.println(parameters.get("queryFilePath")+parameters.get("trecEvalOutputPath"));
         processQueryFile(parameters.get("queryFilePath"), parameters.get("trecEvalOutputPath"),model);
-        System.out.println(parameters.get("queryFilePath")+parameters.get("trecEvalOutputPath"));
+
+        //System.out.println(parameters.get("queryFilePath")+parameters.get("trecEvalOutputPath"));
 
         //  Clean up.
 
@@ -93,9 +94,22 @@ throws IOException {
         else if (modelString.equals("rankedboolean")) {
                 model = new RetrievalModelRankedBoolean();
         }
+        else if (modelString.equals("bm25")) {
+                float k_1=Float.parseFloat(parameters.get("BM25:k_1"));
+                float b=Float.parseFloat(parameters.get("BM25:b"));
+                float k_3=Float.parseFloat(parameters.get("BM25:k_3"));
+                assert k_1>=0.0 && b>=0.0 && b<=1.0 && k_3>=0;
+                model = new RetrievalModelBM25(k_1,b,k_3);
+        }
+        else if (modelString.equals("Indri")) {
+                float mu=Float.parseFloat(parameters.get("Indri:mu"));
+                float lambda=Float.parseFloat(parameters.get("Indri:lambda"));
+                assert mu>=0 && lambda>=0 && lambda<=1.0;
+                model = new RetrievalModelIndri(mu,lambda);
+        }
         else {
-                throw new IllegalArgumentException
-                              ("Unknown retrieval model " + parameters.get("retrievalAlgorithm"));
+          throw new IllegalArgumentException
+                        ("Unknown retrieval model " + parameters.get("retrievalAlgorithm"));
         }
 
         return model;
@@ -148,7 +162,7 @@ throws IOException {
                         while (q.docIteratorHasMatch (model)) {
                                 int docid = q.docIteratorGetMatch ();
                                 double score = ((QrySop) q).getScore (model);
-                                if (score>0)
+                                if (score>=0)
                                         r.add (docid, score);
                                 q.docIteratorAdvancePast (docid);
                         }

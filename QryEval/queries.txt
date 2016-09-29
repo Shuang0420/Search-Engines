@@ -1,10 +1,2 @@
-69:#AND(sewing.title #OR(instructions.body tutorial.body))
-79:#AND(voyager.title)
-84:#OR(#NEAR/3(continental plates) #NEAR/3(tectonic plates))
-89:#OR(#NEAR/3(obsessive compulsive disorder) ocd.keywords)
-108:#NEAR/3(ralph owen brewster)
-141:#OR(#AND(virginia #NEAR/10(vehicle registration) #AND(dmv registration)))
-146:#NEAR/3(sherwood regional library)
-153:#AND(pocono.title)
-171:#OR(#NEAR/3(ron howard) #AND(howard actor))
-197:#AND(#NEAR/3(state.body flower.body) idaho)
+1:apple
+2:banana

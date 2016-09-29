@@ -106,6 +106,9 @@ private static Qry createOperator (String operatorName) {
         case "#syn":
                 operator = new QryIopSyn ();
                 break;
+        case "#sum":
+                operator = new QrySopSum();
+                break;
         default:
                 syntaxError ("Unknown query operator " + operatorName);
         }
