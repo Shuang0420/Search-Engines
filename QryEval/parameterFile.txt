@@ -1,9 +1,6 @@
-indexPath=index
-retrievalAlgorithm=BM25
+indexPath=index_2
+retrievalAlgorithm=Indri
 queryFilePath=queries.txt
 trecEvalOutputPath=trec_eval
-BM25:k_1=1.2
-BM25:b=0.75
-BM25:k_3=0
 Indri:mu=2500
 Indri:lambda=0.4

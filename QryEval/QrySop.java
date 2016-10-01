@@ -1,8 +1,8 @@
-/** 
+/**
  *  Copyright (c) 2016, Carnegie Mellon University.  All Rights Reserved.
  */
 import java.io.*;
-
+import java.util.ArrayList;
 /**
  *  The root class of all query operators that use a retrieval model
  *  to determine whether a query matches a document and to calculate a
@@ -14,6 +14,21 @@ import java.io.*;
  */
 public abstract class QrySop extends Qry {
 
+  ArrayList<Double> weight_list;
+  //double sum_weight;
+
+  public void setWeight(ArrayList<Double> weight_list) {
+    this.weight_list=weight_list;
+  }
+
+
+  public double getSumWeight() {
+      double sum = 0;
+      for(Double d : weight_list) {
+        sum += d;
+      }
+      return sum;
+  }
   /**
    *  Get a score for the document that docIteratorHasMatch matched.
    *  @param r The retrieval model that determines how scores are calculated.
@@ -23,6 +38,9 @@ public abstract class QrySop extends Qry {
   public abstract double getScore (RetrievalModel r)
     throws IOException;
 
+
+    public abstract double getDefaultScore (RetrievalModel r, int doc_id)
+      throws IOException;
   /**
    *  Initialize the query operator (and its arguments), including any
    *  internal iterators.  If the query operator is of type QryIop, it

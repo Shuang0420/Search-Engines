@@ -101,7 +101,7 @@ throws IOException {
                 assert k_1>=0.0 && b>=0.0 && b<=1.0 && k_3>=0;
                 model = new RetrievalModelBM25(k_1,b,k_3);
         }
-        else if (modelString.equals("Indri")) {
+        else if (modelString.equals("indri")) {
                 float mu=Float.parseFloat(parameters.get("Indri:mu"));
                 float lambda=Float.parseFloat(parameters.get("Indri:lambda"));
                 assert mu>=0 && lambda>=0 && lambda<=1.0;

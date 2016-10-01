@@ -114,7 +114,45 @@ public class QrySopScore extends QrySop {
     return 0;
   }
 
+
+  public double getDefaultScore(RetrievalModel r, int doc_id) throws IOException {
+    Qry q = this.args.get(0);
+    double lambda=((RetrievalModelIndri) r).lambda;
+    double mu=((RetrievalModelIndri) r).mu;
+
+    double ctf=((QryIop) q).getCtf();
+
+    String field=((QryIop) q).getField();
+    double doc_len=Idx.getFieldLength(field,doc_id);
+    double collection_len=Idx.getSumOfFieldLengths(field);
+
+    //mle
+    double mle=ctf/collection_len;
+
+    return (1-lambda)*(mu*mle)/(doc_len+mu)+lambda*mle;
+  }
+
+
   public double getScoreIndri (RetrievalModel r) throws IOException {
+    Qry q = this.args.get(0);
+    if (q.docIteratorHasMatch(r)) {
+
+      double tf=((QryIop) q).docIteratorGetMatchPosting().tf;
+
+      double lambda=((RetrievalModelIndri) r).lambda;
+      double mu=((RetrievalModelIndri) r).mu;
+
+      double ctf=((QryIop) q).getCtf();
+
+      String field=((QryIop) q).getField();
+      double doc_len=Idx.getFieldLength(field,q.docIteratorGetMatch());
+      double collection_len=Idx.getSumOfFieldLengths(field);
+
+      //mle
+      double mle=ctf/collection_len;
+
+      return (1-lambda)*(tf+mu*mle)/(doc_len+mu)+lambda*mle;
+    }
     return 0;
   }
 

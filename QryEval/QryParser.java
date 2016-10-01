@@ -4,7 +4,7 @@
 
 import java.io.*;
 import java.util.*;
-
+import java.util.ArrayList;
 import org.apache.lucene.analysis.Analyzer.TokenStreamComponents;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
@@ -37,6 +37,7 @@ import org.apache.lucene.util.Version;
 
 public class QryParser {
 
+static ArrayList<Double> weight_list=new ArrayList<Double>();
 //  --------------- Constants and variables ---------------------
 
 private static final EnglishAnalyzerConfigurable ANALYZER =
@@ -108,6 +109,14 @@ private static Qry createOperator (String operatorName) {
                 break;
         case "#sum":
                 operator = new QrySopSum();
+                break;
+        case "#wsum":
+                operator = new QrySopSum();
+                ((QrySop)operator).setWeight(weight_list);
+                break;
+        case "#wand":
+                operator = new QrySopWAnd ();
+                ((QrySop)operator).setWeight(weight_list);
                 break;
         default:
                 syntaxError ("Unknown query operator " + operatorName);
@@ -293,7 +302,6 @@ throws IOException, IllegalArgumentException {
 
         //order
         Qry queryTree = createOperator (substrings[0].trim());
-        //Stack<Qry> queryStack = new Stack<Qry>();
 
         //  Start consuming queryString by removing the query operator and
         //  its terminating ')'.  queryString is always the part of the
@@ -319,12 +327,23 @@ throws IOException, IllegalArgumentException {
 
                 Qry[] qargs = null;
                 PopData<String,String> p;
-
+                //System.out.println("query string "+queryString);
                 if (queryString.charAt(0) == '#') { // Subquery
                         p = popSubquery (queryString);
                         qargs = new Qry[1];
                         qargs[0] = parseString (p.getPopped());
-                } else { // Term
+                } else if (queryString.charAt(0)=='0') {
+                  p = popTerm (queryString);
+                  //System.out.println("weight  "+p.getPopped());
+                  double weight=Double.parseDouble(p.getPopped());
+                  weight_list.add(weight);
+                  //System.out.println("weight "+weight+"weight_list "+weight_list);
+                  queryString = p.getRemaining().trim();
+                  p = popTerm (queryString);
+                  qargs = createTerms (p.getPopped());
+                  //System.out.println("word  "+p.getPopped());
+                }
+                else { // Term
                         p = popTerm (queryString);
                         qargs = createTerms (p.getPopped());
                 }
@@ -336,7 +355,7 @@ throws IOException, IllegalArgumentException {
                 for (int i=0; i<qargs.length; i++) {
 
                         //  STUDENTS WILL NEED TO ADJUST THIS BLOCK TO HANDLE WEIGHTS IN HW2
-
+                        //System.out.println("arg  "+qargs[i]);
                         queryTree.appendArg (qargs[i]);
                 }
         }

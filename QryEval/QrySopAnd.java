@@ -15,6 +15,9 @@ public class QrySopAnd extends QrySop {
  *  @return True if the query matches, otherwise false.
  */
 public boolean docIteratorHasMatch (RetrievalModel r) {
+  if (r instanceof RetrievalModelIndri) {
+    return this.docIteratorHasMatchMin(r);
+  }
         return this.docIteratorHasMatchAll (r);
 }
 
@@ -30,6 +33,8 @@ public double getScore (RetrievalModel r) throws IOException {
                 return this.getScoreUnrankedBoolean (r);
         } else if (r instanceof RetrievalModelRankedBoolean) {
                 return this.getScoreRankedBoolean(r);
+        } else if (r instanceof RetrievalModelIndri) {
+                return this.getScoreIndri(r);
         }
         else{
                 throw new IllegalArgumentException
@@ -75,6 +80,30 @@ private double getScoreRankedBoolean (RetrievalModel r) throws IOException {
         }
 
         return min_score;
+}
+
+
+public double getDefaultScore(RetrievalModel r, int docid) throws IOException {
+    double lambda = ((RetrievalModelIndri) r).lambda;
+    double mu = ((RetrievalModelIndri) r).mu;
+    double score = 1.0;
+    for (Qry q_i : this.args) {
+        score *= ((QrySop)q_i).getDefaultScore(r, docid);
+    }
+    return Math.pow(score, 1.0 / this.args.size());
+}
+
+
+public double getScoreIndri(RetrievalModel r) throws IOException {
+    double score = 1;
+    int docid = this.docIteratorGetMatch();
+    for (Qry q_i : this.args) {
+        if (q_i.docIteratorHasMatch(r) && q_i.docIteratorGetMatch() == docid)
+            score *= ((QrySop) q_i).getScore(r);
+        else
+            score *= ((QrySop) q_i).getDefaultScore(r, docid);
+    }
+    return Math.pow(score, 1.0 / this.args.size());
 }
 
 }
