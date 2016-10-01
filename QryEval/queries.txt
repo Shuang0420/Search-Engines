@@ -1,1 +1,1 @@
-149:uplift at #AND(yellowstone.title national.body park.body)
+1:#WSUM( 0.3 apple 0.1 banana)

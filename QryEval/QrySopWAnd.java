@@ -15,7 +15,7 @@ public class QrySopWAnd extends QrySop {
  *  @return True if the query matches, otherwise false.
  */
 public boolean docIteratorHasMatch (RetrievalModel r) {
-        return this.docIteratorHasMatchAll (r);
+        return this.docIteratorHasMatchMin (r);
 }
 
 
@@ -23,9 +23,9 @@ public double getDefaultScore (RetrievalModel r, int doc_id) throws IOException{
   double mu=((RetrievalModelIndri) r).mu;
   double lambda=((RetrievalModelIndri) r).lambda;
   double score=1.0;
-  int weight_index=this.weight_list.size()-1;
+  int weight_index=0;
   for (Qry qry:this.args) {
-    double weight=this.weight_list.get(weight_index--);
+    double weight=this.weight_list.get(weight_index++);
     score *= Math.pow(((QrySop) qry).getDefaultScore(r,doc_id), weight/this.getSumWeight());
   }
   return score;
@@ -44,16 +44,21 @@ public double getScore (RetrievalModel r) throws IOException {
         }
         double score=1;
         int doc_id=this.docIteratorGetMatch();
-        int weight_index=this.weight_list.size()-1;
+        int weight_index=0;
         for (Qry qry:this.args) {
-          double weight=(double)(this.weight_list.get(weight_index--));
+          double weight=(double)(this.weight_list.get(weight_index++));
           if (qry.docIteratorHasMatch(r) && qry.docIteratorGetMatch()==doc_id) {
             score *= Math.pow(((QrySop) qry).getScore(r),weight/this.getSumWeight());
+            //System.out.println("getScore "+((QrySop) qry).getScore(r));
+            //System.out.println("weight" + weight);
+            //System.out.println("match "+score);
           }
           else {
             score *= Math.pow(((QrySop) qry).getDefaultScore(r,doc_id),weight/this.getSumWeight());
+            //System.out.println("default  "+score);
           }
         }
+        //System.out.println("score  "+score);
         return score;
 }
 

@@ -106,4 +106,7 @@ public double getScoreIndri(RetrievalModel r) throws IOException {
     return Math.pow(score, 1.0 / this.args.size());
 }
 
+
+
+
 }

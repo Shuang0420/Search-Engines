@@ -92,7 +92,7 @@ private static Qry createOperator (String operatorName) {
         if (operatorNameLowerCase.contains("/")) {
                 int index=operatorNameLowerCase.indexOf("/");
                 n=Integer.parseInt(operatorNameLowerCase.substring(index+1,operatorNameLowerCase.length()));
-                operatorNameLowerCase="#near";
+                operatorNameLowerCase=operatorNameLowerCase.split("/")[0];
         }
         switch (operatorNameLowerCase) {
         case "#or":
@@ -117,6 +117,9 @@ private static Qry createOperator (String operatorName) {
         case "#wand":
                 operator = new QrySopWAnd ();
                 ((QrySop)operator).setWeight(weight_list);
+                break;
+        case "#window":
+                operator = new QryIopWindow (n);
                 break;
         default:
                 syntaxError ("Unknown query operator " + operatorName);

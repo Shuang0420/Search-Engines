@@ -1,4 +1,4 @@
-indexPath=index_2
+indexPath=index
 retrievalAlgorithm=Indri
 queryFilePath=queries.txt
 trecEvalOutputPath=trec_eval

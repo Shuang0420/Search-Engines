@@ -61,9 +61,9 @@ public double getScoreBM25 (RetrievalModel r) throws IOException {
 
 public double getDefaultScore(RetrievalModel r, int doc_id) throws IOException {
   double score=0.0;
-  int weight_index=this.weight_list.size()-1;
+  int weight_index=0;
   for (Qry qry:this.args) {
-    double weight=(double)(this.weight_list.get(weight_index--));
+    double weight=(double)(this.weight_list.get(weight_index++));
     score+=(((QrySop) qry).getDefaultScore(r,doc_id)*weight/this.getSumWeight());
   }
   return score;
@@ -84,9 +84,9 @@ public double getScoreIndri (RetrievalModel r) throws IOException {
         int doc_id = this.docIteratorGetMatch();
         double score=0;
         System.out.println("weight list "+this.weight_list.size());
-        int weight_index=this.weight_list.size()-1;
+        int weight_index=0;
         for (Qry qry:this.args) {
-          double weight=(double)(this.weight_list.get(weight_index--));
+          double weight=(double)(this.weight_list.get(weight_index++));
                 if (qry.docIteratorHasMatch(r) && qry.docIteratorGetMatch()==doc_id)
                     score += ((QrySop) qry).getScore(r)*weight/this.getSumWeight();
                 else
