@@ -1,0 +1,331 @@
+
+/**
+ * Copyright (c) 2016, Carnegie Mellon University. All Rights Reserved.
+ */
+import java.io.*;
+import java.util.*;
+
+/**
+ * The SYN operator for all retrieval models.
+ */
+public class QryIopWindow extends QryIop {
+
+    int n;
+    Vector<Integer> needRemove = new Vector<Integer>();
+
+    public QryIopWindow(int n) {
+        this.n = n;
+    }
+
+    public void initialize(RetrievalModel r) throws IOException {
+        super.initialize(r);
+        process(r);
+    }
+
+    public void process(RetrievalModel r) throws IOException {
+        // get all permutations
+        List<List<Integer>> combinations = permute(this.args.size());
+        Vector<Integer> final_pos = new Vector<Integer>();
+
+        int doc_id = -1;
+        int new_q_doc_id = -1;
+
+        QryIop q = (QryIop) this.args.get(0);
+
+        while (q.docIteratorHasMatch(r)) {
+            //max_pos = 0;
+            doc_id = q.docIteratorGetMatch();
+
+            //System.out.println("doc id " + doc_id);
+            if (doc_id!=345457) {
+            //System.out.println("doc id "+doc_id+" continue");
+            q.docIteratorAdvancePast(doc_id);
+            continue;
+            }
+            //System.out.println("doc id " + doc_id);
+            for (List<Integer> list : combinations) {
+                QryIop new_q = (QryIop) this.args.get(list.get(0));
+
+                if (!(new_q.docIteratorHasMatch(r))) {
+                    break;
+                }
+                new_q_doc_id = new_q.docIteratorGetMatch();
+                //System.out.println("new doc id "+new_q_doc_id+"old doc id "+doc_id);
+                //System.out.println();
+                if (list.get(0) != 0) {//avoid q=new_q, which causes duplicate q.advancepast operation.
+                    while (new_q.docIteratorHasMatch(r)) {
+                        new_q_doc_id = new_q.docIteratorGetMatch();
+                        if (new_q_doc_id < doc_id) {
+                            new_q.docIteratorAdvancePast(new_q_doc_id);
+                        } else {
+                            break;
+                        }
+                    }
+                }
+
+                if (new_q_doc_id != doc_id) {
+                  q.docIteratorAdvancePast(doc_id);
+                  break;
+                }
+                new_q.docIteratorAdvanceTo(new_q_doc_id);
+                //System.out.println("new doc id "+new_q_doc_id+"doc id "+doc_id);
+                Vector<Integer> tmp = new_q.docIteratorGetMatchPosting().positions;
+                boolean flag;
+                for (int i = 1; i < list.size(); i++) {
+                    //System.out.println("next index " + i);
+                    // check the final matched position of last argument
+                    if (i == 1) {
+                        flag = true;
+                    } else {
+                        flag = false;
+                    }
+                    tmp = recursive(list.get(i), new_q_doc_id, tmp, r, flag);
+                    //System.out.print("current_doc_id "+new_q_doc_id+"q0doc_id "+doc_id);
+                    if (tmp.isEmpty()) {
+                        //System.out.println("   None");
+                        break;
+                    }
+                }
+
+                if (tmp.isEmpty()) {
+                    continue;
+                }
+
+
+                System.out.println("tmp ");
+                for (Integer t:tmp) {
+                  System.out.print(t+"\t");
+                }
+                System.out.println();
+
+                final_pos.addAll(tmp);
+                /**
+                System.out.println("final_pos ");
+                for (Integer t:final_pos) {
+                  System.out.print(t+"\t");
+                }
+                System.out.println();*/
+
+/**
+                Vector<Integer> ll = new Vector<Integer>();
+                Collections.sort(final_pos);
+                Collections.sort(tmp);
+                int x=0;
+                int y=0;
+                while (true) {
+                  if (x==tmp.size()) {
+                    for (;y<final_pos.size();y++) {
+                      ll.add(final_pos.get(y));
+                    }
+                    break;
+                  }
+                  else if (y==final_pos.size()) {
+                    for (;x<tmp.size();x++) {
+                      ll.add(tmp.get(x));
+                    }
+                    break;
+                  }
+                  int tmp_x=tmp.get(x);
+                  int final_y=final_pos.get(y);
+                  if (tmp_x>final_y&&tmp_x-final_y<this.n) {
+                    System.out.println("tmp.get(x)-final_pos.get(y)<this.n "+"Tmp "+tmp.get(x)+" final_pos "+final_pos.get(y));
+                    ll.add(final_pos.get(y));
+                    y++;
+                    x++;
+                  }
+                  else if (final_y>tmp_x&&final_y-tmp_x<this.n) {
+                    System.out.println("final_pos.get(y)-tmp.get(x)<this.n "+"Tmp "+tmp.get(x)+" final_pos "+final_pos.get(y));
+                    ll.add(tmp.get(x));
+                    y++;
+                    x++;
+                  }
+                  else if (tmp.get(x)-final_pos.get(y)>=this.n) {
+                    System.out.println("tmp.get(x)-final_pos.get(y)>=this.n "+"Tmp "+tmp.get(x)+" final_pos "+final_pos.get(y));
+                    ll.add(final_pos.get(y));
+                    y++;
+                  }
+                  else if (final_pos.get(y)-tmp.get(x)>=this.n) {
+                    System.out.println("final_pos.get(y)-tmp.get(x)>=this.n "+"Tmp "+tmp.get(x)+" final_pos "+final_pos.get(y));
+                    ll.add(tmp.get(x));
+                    x++;
+                  }
+                }
+
+                System.out.println("ll ");
+                for (Integer t:ll) {
+                  System.out.print(t+"\t");
+                }
+                System.out.println();
+
+                final_pos=new Vector<Integer>();
+                final_pos.addAll(ll);
+
+                System.out.println("Result ");
+                for (Integer xx:final_pos) {
+                  System.out.print(xx+"\t");
+                }
+                System.out.println();
+                /**
+                final_pos.addAll(tmp);
+                for (Integer i : tmp) {
+                    final_pos.add(i);
+                      System.out.print(i+"\t");
+                }
+                System.out.println();*/
+            }
+            if (!final_pos.isEmpty()) {
+              //Vector<Integer> final_pos = new Vector<Integer>();
+              //final_pos.addAll(tmp);
+              this.invertedList.appendPosting(doc_id, final_pos);
+              System.out.println("doc_id " + doc_id);
+
+              for (Integer i : final_pos) {
+                System.out.println(i);
+              }
+            }
+
+            /**
+            if (!final_pos.isEmpty()) {
+              Vector<Integer> list = new Vector<Integer>();
+              if (final_pos.size()>1) {
+                List <Integer> tmp=new ArrayList<Integer>();
+                //list.addAll(final_pos);
+
+                tmp.addAll(final_pos);
+                int e=0;
+                for (;e<tmp.size()-1;) {
+                  if (tmp.get(e+1)-tmp.get(e)<this.n) {
+                    list.add(tmp.get(e));
+                    e+=2;
+                  }
+                  else {
+                    list.add(tmp.get(e));
+                    e+=1;
+                  }
+                }
+                if (e==tmp.size()-1 || (e==tmp.size()-1&&tmp.get(tmp.size()-1)-tmp.get(tmp.size()-2)>this.n))
+                  list.add(tmp.get(tmp.size()-1));
+                //list.addAll(final_pos);
+              }
+              else {
+                list.addAll(final_pos);
+              }
+                this.invertedList.appendPosting(doc_id, list);
+                System.out.println("doc_id " + doc_id);
+
+                for (Integer i : list) {
+                  System.out.println(i);
+                }
+            }*/
+            final_pos=new Vector<Integer>();
+            q.docIteratorAdvancePast(doc_id);
+        }
+    }
+
+
+    public List<List<Integer>> permute(int number) {
+        int[] num = new int[number];
+        for (int i = 0; i < number; i++) {
+            num[i] = i;
+        }
+        LinkedList<List<Integer>> res = new LinkedList<List<Integer>>();
+        res.add(new ArrayList<Integer>());
+        for (int n : num) {
+            int size = res.size();
+            for (; size > 0; size--) {
+                List<Integer> r = res.pollFirst();
+                for (int i = 0; i <= r.size(); i++) {
+                    List<Integer> t = new ArrayList<Integer>(r);
+                    t.add(i, n);
+                    res.add(t);
+                }
+            }
+        }
+        return res;
+    }
+
+    /**
+     * Evaluate the query operator; the result is an internal inverted list that
+     * may be accessed via the internal iterators.
+     *
+     * @throws IOException Error accessing the Lucene index.
+     */
+    protected void evaluate() throws IOException {
+        //  Create an empty inverted list.  If there are no query arguments,
+        //  that's the final result.
+        this.invertedList = new InvList(this.getField());
+
+        if (args.size() < 2) {
+            return;
+        }
+    }
+
+    /**
+     * Returns all the matched positions of current argument
+     *
+     * @param i The current argument to process.
+     * @param doc_id The current doc to process.
+     * @param curr_pos The current final positions of last argument.
+     * @param r The retrieval model that determines how scores are calculated.
+     * @return The final matched positions of current argument.
+     * @throws IOException Error accessing the Lucene index.
+     */
+    private Vector<Integer> recursive(int i, int doc_id, Vector<Integer> curr_pos, RetrievalModel r, boolean flag) throws IOException {
+        Vector<Integer> final_pos = new Vector<Integer>();
+        Iterator<Integer> left_postings = curr_pos.iterator();
+        QryIop right = (QryIop) this.args.get(i);
+        right.docIteratorAdvanceTo(doc_id);
+        // check if current doc contains current argument
+        if (!right.docIteratorHasMatch(r) || right.docIteratorGetMatch() != doc_id) {
+            return final_pos;
+        }
+
+        Iterator<Integer> right_postings = right.docIteratorGetMatchPosting().positions.iterator();
+        if (!(left_postings.hasNext() && right_postings.hasNext())) {
+            return final_pos;
+        }
+        int left_loc = left_postings.next();
+        int right_loc = right_postings.next();
+
+        while (true) {
+            //while (left_loc>right_loc) {
+            //System.out.println("i "+i+"Left: "+left_loc+"Right: "+right_loc);
+            if (left_loc > right_loc) {
+                //right_postings.remove();
+                if (!right_postings.hasNext()) {
+                    return final_pos;
+                }
+                right_loc = right_postings.next();
+                //System.out.println("i "+i+"Left: "+left_loc+"Right: "+right_loc);
+            } // now left_loc<=right_loc
+            else if (right_loc - left_loc <= this.n) {// then go for the next argument
+                //if (i == 1) {
+                //if (flag)
+                System.out.println("i "+i+"Left: "+left_loc+"Right: "+right_loc);
+                if (! (final_pos.contains(left_loc) || final_pos.contains(right_loc))) {
+                final_pos.add(left_loc);
+                needRemove.add(right_loc);
+              }
+                //needRemove.add(right_loc);
+                //}
+                //left_postings.remove();
+                //right_postings.remove();
+                //right_postings.remove();
+                if (!(left_postings.hasNext() && right_postings.hasNext())) {
+                    return final_pos;
+                }
+                left_loc = left_postings.next();
+                //right_loc = right_postings.next();
+                //  System.out.println("i "+i+"Left: "+left_loc+"Right: "+right_loc);
+            } else { //right_loc-left_loc>this.n
+                //left_postings.remove();
+                if (!left_postings.hasNext()) {
+                    return final_pos;
+                }
+                left_loc = left_postings.next();
+                //  System.out.println("i "+i+"Left: "+left_loc+"Right: "+right_loc);
+
+            }
+        }
+    }
+}

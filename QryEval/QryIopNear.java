@@ -24,7 +24,7 @@ public void process(RetrievalModel r) throws IOException {
         while (q.docIteratorHasMatch(r)) {
                 // get the doc that contains first argument
                 int doc_id = q.docIteratorGetMatch();
-
+                //System.out.println("doc_id "+doc_id);
                 q.docIteratorAdvanceTo(doc_id);
                 // get the positions of first argument in the matched doc
                 Vector<Integer> final_pos= q.docIteratorGetMatchPosting().positions;
@@ -38,6 +38,12 @@ public void process(RetrievalModel r) throws IOException {
                 if (!final_pos.isEmpty()) {
                         Collections.sort(final_pos);
                         this.invertedList.appendPosting (doc_id, final_pos);
+                        //System.out.println("doc_id " + doc_id);
+
+                        //for (Integer i : final_pos) {
+                          //  System.out.println(i);
+                        //}
+
                 }
                 q.docIteratorAdvancePast(doc_id);
         }
@@ -89,7 +95,7 @@ private Vector<Integer> recursive(int i, int doc_id, Vector<Integer> curr_pos,Re
                 //System.out.println("i "+i+"Left: "+left_loc+"Right: "+right_loc);
                 //while (left_loc>right_loc) {
                 if (left_loc>right_loc) {
-                        right_postings.remove();
+                        //right_postings.remove();
                         if (!right_postings.hasNext()) {
                                 return final_pos;
                         }
@@ -99,8 +105,8 @@ private Vector<Integer> recursive(int i, int doc_id, Vector<Integer> curr_pos,Re
                 // now left_loc<=right_loc
                 else if (right_loc-left_loc<=this.n) {// then go for the next argument
                         final_pos.add(right_loc);
-                        left_postings.remove();
-                        right_postings.remove();
+                        //left_postings.remove();
+                        //right_postings.remove();
                         if (!(left_postings.hasNext()&&right_postings.hasNext())) {
                                 return final_pos;
                         }
@@ -110,7 +116,7 @@ private Vector<Integer> recursive(int i, int doc_id, Vector<Integer> curr_pos,Re
                 }
 
                 else { //right_loc-left_loc>this.n
-                        left_postings.remove();
+                        //left_postings.remove();
                         if (!left_postings.hasNext()) {
                                 return final_pos;
                         }

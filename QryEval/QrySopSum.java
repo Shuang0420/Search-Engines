@@ -29,7 +29,7 @@ public double getScore (RetrievalModel r) throws IOException {
         }
         else{
                 throw new IllegalArgumentException
-                              (r.getClass().getName() + " doesn't support the OR operator.");
+                              (r.getClass().getName() + " doesn't support the SUM operator.");
         }
 }
 
@@ -83,9 +83,10 @@ public double getScoreIndri (RetrievalModel r) throws IOException {
 
         int doc_id = this.docIteratorGetMatch();
         double score=0;
-        System.out.println("weight list "+this.weight_list.size());
+        //System.out.println("weight list "+this.weight_list.size());
         int weight_index=0;
         for (Qry qry:this.args) {
+          //System.out.println("qry "+qry+" "+this.weight_list.size());
           double weight=(double)(this.weight_list.get(weight_index++));
                 if (qry.docIteratorHasMatch(r) && qry.docIteratorGetMatch()==doc_id)
                     score += ((QrySop) qry).getScore(r)*weight/this.getSumWeight();

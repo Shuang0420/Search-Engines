@@ -1,123 +1,168 @@
-/**
- *  Copyright (c) 2016, Carnegie Mellon University.  All Rights Reserved.
- */
-import java.io.*;
+
+import java.io.IOException;
 import java.util.*;
 
 /**
- *  The SYN operator for all retrieval models.
+ * Created by Jiati Le on 2/23/16. Andrew ID: jiati l
  */
 public class QryIopWindow extends QryIop {
-int n;
-public QryIopWindow(int n){
-        this.n=n;
-}
 
-public void initialize(RetrievalModel r) throws IOException {
+    private int n;
+
+    public QryIopWindow(int n) {
+        this.n = n;
+    }
+
+    public void initialize(RetrievalModel r) throws IOException {
         super.initialize(r);
         process(r);
-}
+    }
 
-
-public void process(RetrievalModel r) throws IOException {
-        QryIop q = (QryIop)this.args.get(0);
-        while (q.docIteratorHasMatch(r)) {
-                // get the doc that contains first argument
-                int doc_id = q.docIteratorGetMatch();
-
-                q.docIteratorAdvanceTo(doc_id);
-                // get the positions of first argument in the matched doc
-                Vector<Integer> final_pos= q.docIteratorGetMatchPosting().positions;
-
-                for (int i=1; i<this.args.size(); i++) {
-                        // check the final matched position of last arument
-                        final_pos=recursive(i,doc_id,final_pos,r);
-                        if (final_pos.isEmpty()) break;
-                }
-
-                if (!final_pos.isEmpty()) {
-                        Collections.sort(final_pos);
-                        this.invertedList.appendPosting (doc_id, final_pos);
-                }
-                q.docIteratorAdvancePast(doc_id);
-        }
-
-}
-
-
-/**
- *  Evaluate the query operator; the result is an internal inverted
- *  list that may be accessed via the internal iterators.
- *  @throws IOException Error accessing the Lucene index.
- */
-protected void evaluate () throws IOException {
+    /**
+     * Evaluate the query operator; the result is an internal inverted list that
+     * may be accessed via the internal iterators.
+     *
+     * @throws IOException Error accessing the Lucene index.
+     */
+    protected void evaluate() throws IOException {
         //  Create an empty inverted list.  If there are no query arguments,
         //  that's the final result.
-        this.invertedList = new InvList (this.getField());
+        this.invertedList = new InvList(this.getField());
 
-        if (args.size () < 2) {
-                return;
+        if (args.size() < 2) {
+            return;
         }
-}
+    }
 
+    public void process(RetrievalModel r) throws IOException {
+        // find the min, and let min move advance
+        boolean process_flag = true;
+        while (process_flag) {
+            //System.out.println("process_flag");
+            /**
+             * ---------------------------------------------------- check doc--------------------------------------
+             */
+            List<Integer> doc_id_list = new ArrayList<Integer>();
+            for (Qry qry : this.args) {
+                if (qry.docIteratorHasMatch(r)) {
+                    doc_id_list.add(qry.docIteratorGetMatch());
+                } else {
+                    process_flag = false;
+                    break;
+                }
+                //else
+            }
+            if (!process_flag) {
+                break;
+            }
+            //System.out.println("process_flag "+process_flag);
+            boolean doc_flag = false;
+            // if doesn't point to the same doc, move the doc with min index advance
+            while (!doc_flag) {
+                //System.out.println("not "+doc_flag);
+                int min_doc_id = Collections.min(doc_id_list);
+                // check whether point to the same doc;
+                doc_flag = true;
+                //System.out.println(doc_flag);
+                for (Qry qry : this.args) {
+                    if (qry.docIteratorHasMatch(r) && qry.docIteratorGetMatch() != min_doc_id) {
+                        doc_flag = false;
+                    }
+                    if (!qry.docIteratorHasMatch(r)) {
+                        process_flag = false;
+                        break;
+                    }
+                    //System.out.println("testing "+qry.docIteratorGetMatch()+"   "+min_doc_id);
+                }
+                //System.out.println(doc_flag);
+                if (doc_flag) {
+                    //    System.out.println("Ture ");
+                    break;
+                }
+                // if not, move the doc with min index advance
+                Qry qry = this.args.get(doc_id_list.indexOf(min_doc_id));
+                qry.docIteratorAdvancePast(min_doc_id);
+                if (qry.docIteratorHasMatch(r)) {
+                    doc_id_list.set(doc_id_list.indexOf(min_doc_id), qry.docIteratorGetMatch());
+                    //System.out.println("min_doc_id "+qry.docIteratorGetMatch());
+                } else {
+                    process_flag = false;
+                    break;
+                }
+            }
 
+            //System.out.println("process_flag 2 "+process_flag);
+            if (!process_flag) {
+                break;
+            }
 
-/**
- *  Returns all the matched positions of current argument
- *  @param i The current argument to process.
- *  @param doc_id The current doc to process.
- *  @param curr_pos The current final positions of last argument.
- *  @param r The retrieval model that determines how scores are calculated.
- *  @return The final matched positions of current argument.
- *  @throws IOException Error accessing the Lucene index.
- */
-private Vector<Integer> recursive(int i, int doc_id, Vector<Integer> curr_pos,RetrievalModel r) throws IOException {
-        Vector<Integer> final_pos = new Vector<Integer>();
-        Iterator<Integer> left_postings = curr_pos.iterator();
-        QryIop right=(QryIop)this.args.get(i);
-        right.docIteratorAdvanceTo(doc_id);
-        // check if current doc contains current argument
-        if (!right.docIteratorHasMatch(r) || right.docIteratorGetMatch() != doc_id)
-                return final_pos;
-        Iterator<Integer> right_postings = right.docIteratorGetMatchPosting().positions.iterator();
-        if (!(left_postings.hasNext()&&right_postings.hasNext())) {
-                return final_pos;
+            // get current doc
+            int curr_doc_id = this.args.get(0).docIteratorGetMatch();
+
+            //System.out.println("curr_doc_id "+curr_doc_id);
+            /**
+             * ---------------------------------------------------- check loc--------------------------------------
+             */
+            Vector<Integer> final_pos = new Vector<Integer>();
+            List<Integer> loc_list = new ArrayList<Integer>();
+
+            for (Qry qry : this.args) {
+                if (((QryIop) qry).locIteratorHasMatch()) {
+                    loc_list.add(((QryIop) qry).locIteratorGetMatch());
+                }
+            }
+
+            boolean loc_flag = true;
+            boolean continue_flag = true;
+            while (loc_flag && continue_flag) {
+                int max_loc = Collections.max(loc_list);
+                int min_loc = Collections.min(loc_list);
+                //System.out.println("max_loc "+max_loc+"min_loc "+min_loc+" n "+this.n);
+                if (max_loc - min_loc < this.n) {
+                    final_pos.add(max_loc);
+                    //System.out.println("match");
+                    loc_list = new ArrayList<Integer>();
+                    for (Qry qry : this.args) {
+                        ((QryIop) qry).locIteratorAdvance();
+                        if (!((QryIop) qry).locIteratorHasMatch()) {
+                            continue_flag = false;
+                            break;
+                        }
+                        loc_list.add(((QryIop) qry).locIteratorGetMatch());
+                    }
+                } else {
+                    Qry qry = this.args.get(loc_list.indexOf(min_loc));
+                    ((QryIop) qry).locIteratorAdvance();
+                    if (((QryIop) qry).locIteratorHasMatch()) {
+                        loc_list.set(loc_list.indexOf(min_loc), ((QryIop) qry).locIteratorGetMatch());
+                    } else {
+                        continue_flag = false;
+                        break;
+                    }
+                }
+            }
+
+            if (!final_pos.isEmpty()) {
+                //System.out.println("not empty ");
+                this.invertedList.appendPosting(curr_doc_id, final_pos);
+                //System.out.println("doc_id "+curr_doc_id);
+                //for (Integer i:final_pos) {
+                //System.out.println(i);
+                //}
+            }
+
+            //System.out.println("FInish loop");
+            for (Qry qry : this.args) {
+                if (qry.docIteratorHasMatch(r)) {
+                    qry.docIteratorAdvancePast(curr_doc_id);
+                } else {
+                    process_flag = false;
+                    break;
+                }
+            }
+            //System.out.println("finish "+process_flag);
         }
-        int left_loc=left_postings.next();
-        int right_loc=right_postings.next();
-        while (true) {
-                //System.out.println("i "+i+"Left: "+left_loc+"Right: "+right_loc);
-                //while (left_loc>right_loc) {
-                if (left_loc>right_loc) {
-                        right_postings.remove();
-                        if (!right_postings.hasNext()) {
-                                return final_pos;
-                        }
-                        right_loc=right_postings.next();
-                        //System.out.println("i "+i+"Left: "+left_loc+"Right: "+right_loc);
-                }
-                // now left_loc<=right_loc
-                else if (right_loc-left_loc<=this.n) {// then go for the next argument
-                        final_pos.add(right_loc);
-                        left_postings.remove();
-                        right_postings.remove();
-                        if (!(left_postings.hasNext()&&right_postings.hasNext())) {
-                                return final_pos;
-                        }
-                        left_loc=left_postings.next();
-                        right_loc=right_postings.next();
-                        //  System.out.println("i "+i+"Left: "+left_loc+"Right: "+right_loc);
-                }
 
-                else { //right_loc-left_loc>this.n
-                        left_postings.remove();
-                        if (!left_postings.hasNext()) {
-                                return final_pos;
-                        }
-                        left_loc=left_postings.next();
-                        //  System.out.println("i "+i+"Left: "+left_loc+"Right: "+right_loc);
+    }
 
-                }
-        }
-}
 }
