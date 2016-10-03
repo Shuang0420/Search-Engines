@@ -14,11 +14,21 @@ import java.util.ArrayList;
  */
 public abstract class QrySop extends Qry {
 
-  ArrayList<Double> weight_list;
+  ArrayList<Double> weight_list=new ArrayList<Double>();
   //double sum_weight;
 
   public void setWeight(ArrayList<Double> weight_list) {
     this.weight_list=weight_list;
+  }
+
+  public void addWeight(double weight) {
+    this.weight_list.add(weight);
+  }
+
+  public boolean weightExist() {
+    if (this.weight_list.size()>0)
+      return true;
+    return false;
   }
 
 

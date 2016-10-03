@@ -73,7 +73,7 @@ public class QryParser {
      * @parameter operator The operator name.
      */
     private static Qry createOperator(String operatorName) {
-      System.out.println("operator name "+operatorName);
+        //System.out.println("operator name "+operatorName);
         Qry operator = null;
         int operatorDistance = 0;
         int n = 0;
@@ -106,13 +106,9 @@ public class QryParser {
                 break;
             case "#wsum":
                 operator = new QrySopSum();
-                ((QrySop) operator).setWeight(weight_list);
-                //System.out.println(((QrySop) operator).getSumWeight());
                 break;
             case "#wand":
                 operator = new QrySopWAnd();
-                ((QrySop) operator).setWeight(weight_list);
-                System.out.println(((QrySop) operator).getSumWeight());
                 break;
             case "#window":
                 operator = new QryIopWindow(n);
@@ -182,7 +178,7 @@ public class QryParser {
     public static Qry getQuery(String queryString)
             throws IOException, IllegalArgumentException {
 
-        Qry q = parseString(queryString,0); // An exact parse
+        Qry q = parseString(queryString); // An exact parse
         q = optimizeQuery(q);  // An optimized parse
         return q;
     }
@@ -266,7 +262,7 @@ public class QryParser {
      * @throws IOException Error accessing the Lucene index.
      * @throws IllegalArgumentException Query syntax error.
      */
-    private static Qry parseString(String queryString,double weight)
+    private static Qry parseString(String queryString)
             throws IOException, IllegalArgumentException {
 
         //  This simple parser is sensitive to parenthensis placement, so
@@ -296,48 +292,70 @@ public class QryParser {
         queryString = substrings[1];
         queryString
                 = queryString.substring(0, queryString.lastIndexOf(")")).trim();
-
+        double weight = 0;
+        boolean flag1 = false;
+        boolean flag2 = false;
         //  Each pass below handles one argument to the query operator.
         //  Note: An argument can be a token that produces multiple terms
         //  (e.g., "near-death") or a subquery (e.g., "#and (a b c)").
         //  Recurse on subqueries.
         while (queryString.length() > 0) {
+            //System.out.println("loop");
 
-                //  If the operator uses weighted query arguments, each pass of
+            //  If the operator uses weighted query arguments, each pass of
             //  this loop must handle "weight arg".  Handle the weight first.
-                //  STUDENT HW2 CODE GOES HERE
-                //  Now handle the argument (which could be a subquery).
-                // #WSUM(0.3 #AND(fickle.title creek.title farm.title) 0.7 #AND(fickle creek farm) )
-                // 71:#WAND( 0.3 living 0.1 in 0.6 india )
+            //  STUDENT HW2 CODE GOES HERE
+            //  Now handle the argument (which could be a subquery).
+            // #WSUM(0.3 #AND(fickle.title creek.title farm.title) 0.7 #AND(fickle creek farm) )
+            // 71:#WAND( 0.3 living 0.1 in 0.6 india )
             Qry[] qargs = null;
             PopData<String, String> p;
             if (queryString.charAt(0) == '#') { // Subquery
+                //System.out.println("#");
                 p = popSubquery(queryString);
                 qargs = new Qry[1];
-                qargs[0] = parseString(p.getPopped(),weight);
+                qargs[0] = parseString(p.getPopped());
+                if (flag1) {
+                    weight_list.add(weight);
+                }
             } else if (queryString.charAt(0) == '0') {
                 p = popTerm(queryString);
                 weight = Double.parseDouble(p.getPopped());
-                weight_list.add(weight);
-                System.out.println(weight);
+
+                //System.out.println(p.popped + "   remains  " + p.remaining);
+                queryString = p.getRemaining().trim();
+                if (queryString.charAt(0) == '#') {
+                    flag1 = true;
+                } else {
+                    flag2 = true;
+                }
+                continue;
             } else { // Term
-                //if (weight != 0) {
-                  //  weight_list.add(weight);
-                //}
                 p = popTerm(queryString);
                 qargs = createTerms(p.getPopped());
+                if (flag2) {
+                    qargs = createTerms(p.getPopped());
+                    for (int i = 0; i < qargs.length; i++) {
+                        weight_list.add(weight);
+                    }
+                }
             }
 
             queryString = p.getRemaining().trim(); // Consume the arg
+            //System.out.println("query string " + queryString);
 
             //  Add the argument(s) to the query tree.
             if (qargs != null) {
                 for (int i = 0; i < qargs.length; i++) {
-                        //  STUDENTS WILL NEED TO ADJUST THIS BLOCK TO HANDLE WEIGHTS IN HW2
+                    //  STUDENTS WILL NEED TO ADJUST THIS BLOCK TO HANDLE WEIGHTS IN HW2
                     //System.out.println("arg  "+qargs[i]);
                     queryTree.appendArg(qargs[i]);
                 }
             }
+        }
+
+        if (queryTree instanceof QrySop && !((QrySop) queryTree).weightExist() && weight_list.size() > 0) {
+            ((QrySop) queryTree).setWeight(weight_list);
         }
 
         return queryTree;
