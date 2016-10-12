@@ -87,8 +87,8 @@ public double getDefaultScore(RetrievalModel r, int docid) throws IOException {
     double lambda = ((RetrievalModelIndri) r).lambda;
     double mu = ((RetrievalModelIndri) r).mu;
     double score = 1.0;
-    for (Qry q_i : this.args) {
-        score *= ((QrySop)q_i).getDefaultScore(r, docid);
+    for (Qry qry : this.args) {
+        score *= ((QrySop)qry).getDefaultScore(r, docid);
     }
     return Math.pow(score, 1.0 / this.args.size());
 }
@@ -97,16 +97,13 @@ public double getDefaultScore(RetrievalModel r, int docid) throws IOException {
 public double getScoreIndri(RetrievalModel r) throws IOException {
     double score = 1;
     int docid = this.docIteratorGetMatch();
-    for (Qry q_i : this.args) {
-        if (q_i.docIteratorHasMatch(r) && q_i.docIteratorGetMatch() == docid)
-            score *= ((QrySop) q_i).getScore(r);
+    for (Qry qry : this.args) {
+        if (qry.docIteratorHasMatch(r) && qry.docIteratorGetMatch() == docid)
+            score *= ((QrySop) qry).getScore(r);
         else
-            score *= ((QrySop) q_i).getDefaultScore(r, docid);
+            score *= ((QrySop) qry).getDefaultScore(r, docid);
     }
     return Math.pow(score, 1.0 / this.args.size());
 }
-
-
-
 
 }

@@ -8,7 +8,7 @@ import java.io.*;
 /**
  * The OR operator for all retrieval models.
  */
-public class QrySopWAnd extends QryWSop {
+public class QrySopWSum extends QryWSop {
 
 	/**
 	 * Indicates whether the query has a match.
@@ -21,14 +21,21 @@ public class QrySopWAnd extends QryWSop {
 		return this.docIteratorHasMatchMin(r);
 	}
 
+	public double getScore(RetrievalModel r) throws IOException {
+
+		if (r instanceof RetrievalModelIndri) {
+			return this.getScoreIndri(r);
+		} else {
+			throw new IllegalArgumentException(r.getClass().getName() + " doesn't support the SUM operator.");
+		}
+	}
+
 	public double getDefaultScore(RetrievalModel r, int doc_id) throws IOException {
-		double mu = ((RetrievalModelIndri) r).mu;
-		double lambda = ((RetrievalModelIndri) r).lambda;
-		double score = 1.0;
+		double score = 0.0;
 		int weight_index = 0;
 		for (Qry qry : this.args) {
-			double weight = this.weight_list.get(weight_index++);
-			score *= Math.pow(((QrySop) qry).getDefaultScore(r, doc_id), weight / this.getSumWeight());
+			double weight = (double) (this.weight_list.get(weight_index++));
+			score += (((QrySop) qry).getDefaultScore(r, doc_id) * weight / this.getSumWeight());
 		}
 		return score;
 	}
@@ -42,22 +49,23 @@ public class QrySopWAnd extends QryWSop {
 	 * @throws IOException
 	 *             Error accessing the Lucene index
 	 */
-	public double getScore(RetrievalModel r) throws IOException {
+	public double getScoreIndri(RetrievalModel r) throws IOException {
 
 		if (!(r instanceof RetrievalModelIndri)) {
-			throw new IllegalArgumentException(r.getClass().getName() + " doesn't support the WAND operator.");
+			throw new IllegalArgumentException(r.getClass().getName() + " doesn't support the WSUM operator.");
 		}
-		double score = 1;
+
 		int doc_id = this.docIteratorGetMatch();
+		double score = 0;
 		int weight_index = 0;
 		for (Qry qry : this.args) {
 			double weight = (double) (this.weight_list.get(weight_index++));
 			if (qry.docIteratorHasMatch(r) && qry.docIteratorGetMatch() == doc_id)
-				score *= Math.pow(((QrySop) qry).getScore(r), weight / this.getSumWeight());
+				score += ((QrySop) qry).getScore(r) * weight / this.getSumWeight();
 			else
-				score *= Math.pow(((QrySop) qry).getDefaultScore(r, doc_id), weight / this.getSumWeight());
-		}
+				score += ((QrySop) qry).getDefaultScore(r, doc_id) * weight / this.getSumWeight();
 
+		}
 		return score;
 	}
 

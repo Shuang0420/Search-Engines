@@ -12,8 +12,33 @@ import java.util.ArrayList;
  *  Second, it is a place to store data structures and methods that are
  *  common to all query operators that calculate document scores.
  */
-public abstract class QrySop extends Qry {
+public abstract class QryWSop extends QrySop {
 
+  ArrayList<Double> weight_list=new ArrayList<Double>();
+  //double sum_weight;
+
+  public void setWeight(ArrayList<Double> weight_list) {
+    this.weight_list=weight_list;
+  }
+
+  public void addWeight(double weight) {
+    this.weight_list.add(weight);
+  }
+
+  public boolean weightExist() {
+    if (this.weight_list.size()>0)
+      return true;
+    return false;
+  }
+
+
+  public double getSumWeight() {
+      double sum = 0;
+      for(Double d : weight_list) {
+        sum += d;
+      }
+      return sum;
+  }
   /**
    *  Get a score for the document that docIteratorHasMatch matched.
    *  @param r The retrieval model that determines how scores are calculated.

@@ -2,5 +2,5 @@ indexPath=index_2
 retrievalAlgorithm=Indri
 queryFilePath=queries.txt
 trecEvalOutputPath=trec_eval
-Indri:mu=2500
-Indri:lambda=0.4
+Indri:mu=1000
+Indri:lambda=0.7

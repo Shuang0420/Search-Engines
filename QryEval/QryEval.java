@@ -146,6 +146,7 @@ throws IOException {
 
         String defaultOp = model.defaultQrySopName ();
         qString = defaultOp + "(" + qString + ")";
+        QryParser.initiate();
         Qry q = QryParser.getQuery (qString); //get query tree
         // Show the query that is evaluated
         System.out.println(q.args.size());
