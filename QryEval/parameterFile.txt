@@ -1,6 +1,13 @@
 indexPath=index_2
-retrievalAlgorithm=Indri
+retrievalAlgorithm=indri
 queryFilePath=queries.txt
-trecEvalOutputPath=trec_eval
+trecEvalOutputPath=hw4_indriRef
 Indri:mu=1000
 Indri:lambda=0.7
+fb=true
+fbDocs=20
+fbTerms=20
+fbMu=0
+fbOrigWeight=0.4
+fbInitialRankingFile=Indri-Sdm.teIn
+fbExpansionQueryFile=queryExpansion_ref_sdm

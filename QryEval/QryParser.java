@@ -306,7 +306,6 @@ public class QryParser {
 		// (e.g., "near-death") or a subquery (e.g., "#and (a b c)").
 		// Recurse on subqueries.
 		while (queryString.length() > 0) {
-			// System.out.println("loop");
 
 			// If the operator uses weighted query arguments, each pass of
 			// this loop must handle "weight arg". Handle the weight first.
@@ -325,12 +324,16 @@ public class QryParser {
 				if (flag1) {
 					weight_list.add(weight);
 				}
-			} else if (Character.isDigit(queryString.charAt(0))) {
+			} else if (Character.isDigit(queryString.charAt(0)) && queryTree instanceof QryWSop) {
+//				System.out.println("digit");
 				p = popTerm(queryString);
 				weight = Double.parseDouble(p.getPopped());
 
 				// System.out.println(p.popped + " remains " + p.remaining);
 				queryString = p.getRemaining().trim();
+				if (queryString.length()<1){
+					continue;
+				}
 				if (queryString.charAt(0) == '#') {
 					flag1 = true;
 				} else {

@@ -1,1 +1,20 @@
-87:#WAND (0.5 #AND(#WSUM (0.3 who.title 0.2 who.url 0.4 who.body 0.3 who.inlink) #WSUM (0.3 invented.title 0.2 invented.url 0.4 invented.body 0.3 invented.inlink) #WSUM(0.3 music.title 0.2 music.url 0.4 music.body 0.3 music.inlink)) 0.5 #WAND (0.8 #AND (who invented music) 0.1 #AND (#NEAR/1 (who invented) #NEAR/1 (invented music)) 0.1 #AND (#WINDOW/8 (who invented) #WINDOW/8 (invented music))))
+52:avp
+67:vldl levels
+69:sewing instructions
+79:voyager
+84:continental plates
+89:ocd
+91:er tv show
+102:fickle creek farm
+105:sonoma county medical services
+108:ralph owen brewster
+141:va dmv registration
+146:sherwood regional library
+149:uplift at yellowstone national park
+153:pocono
+159:porterville
+171:ron howard
+180:newyork hotels
+190:brooks brothers clearance
+196:sore throat
+197:idaho state flower
