@@ -14,7 +14,7 @@ use Spreadsheet::WriteExcel;
 use List::Util qw(first);
 
 #my $fileIn = 'Indri-Bow.teIn';
-my $fileIn = 'hw4_indriRef';
+my $fileIn = 'bm25.trec_eval.txt';
 my $url = 'http://boston.lti.cs.cmu.edu/classes/11-642/HW/HTS/tes.cgi';
 
 #  Fill in your USERNAME and PASSWORD below.

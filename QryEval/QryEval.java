@@ -7,15 +7,6 @@ import java.io.*;
 import java.util.*;
 import java.util.Map.Entry;
 
-import org.apache.lucene.analysis.Analyzer.TokenStreamComponents;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.*;
-import org.apache.lucene.search.*;
-import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.Version;
-
 /**
  * This software illustrates the architecture for the portion of a search engine
  * that evaluates queries. It is a guide for class homework assignments, so it
@@ -65,16 +56,15 @@ public class QryEval {
 
 		Idx.open(parameters.get("indexPath")); // Open a Lucene index and the
 												// associated DocLengthStore.
-		RetrievalModel model = initializeRetrievalModel(parameters);
+		RetrievalModel model = initializeRetrievalModel();
 
 		// Perform experiments.
-		processQueryFile(parameters.get("queryFilePath"), parameters.get("trecEvalOutputPath"), model);
-
+		if (!(model instanceof RetrievalModelLetor)) {
+			processQueryFile(parameters.get("queryFilePath"), parameters.get("trecEvalOutputPath"), model);
+		}
 		timer.stop();
 		System.out.println("Time:  " + timer);
 	}
-
-
 
 	/**
 	 * @param score_list
@@ -82,20 +72,20 @@ public class QryEval {
 	 * @throws IOException
 	 */
 	private static String expandQuery(ScoreList score_list) throws IOException {
-		class InvertedObject{
-			double mle;
-			ArrayList<Integer> doc_list;
-			public InvertedObject(double mle,ArrayList<Integer> doc_list) {
-				this.doc_list=doc_list;
-				this.mle=mle;
-			}
-		}
+		/**
+		 * class InvertedObject{ double mle; ArrayList<Integer> doc_list; public
+		 * InvertedObject(double mle,ArrayList<Integer> doc_list) {
+		 * this.doc_list=doc_list; this.mle=mle; } }
+		 */
+
 		double fbMu = Double.parseDouble(parameters.get("fbMu"));
 		int fbDocs = Integer.parseInt(parameters.get("fbDocs"));
 		int fbTerms = Integer.parseInt(parameters.get("fbTerms"));
 		int docNum = Math.min(fbDocs, score_list.size());
-		double cLength = (double) Idx.getSumOfFieldLengths("body");
-		Map<String, InvertedObject> invertedList = new HashMap();
+		double cLength = Idx.getSumOfFieldLengths("body");
+		// Map<String, InvertedObject> invertedList = new HashMap();
+		Map<String, ArrayList<Integer>> invertedList = new HashMap();
+		Map<String, Double> mleList = new HashMap();
 		// map<term, score>
 		Map<String, Double> termScore = new HashMap();
 		// get expanded term
@@ -124,11 +114,6 @@ public class QryEval {
 				// a form of idf
 				double idf = Math.log(1 / mle);
 				double cur_doc_score = Ptd * docScore * idf;
-				// System.out.println("tf "+tf+" fbMu "+fbMu+" mle "+mle+"
-				// doclen "+docLen);
-				// System.out.println("mle " + mle + " PTD " + Ptd + " doc
-				// score" + docScore + " idf " + idf
-				// + " cur_doc_score " + cur_doc_score);
 				if (termScore.containsKey(term)) {
 					termScore.put(term, termScore.get(term) + cur_doc_score);
 				} else {
@@ -136,29 +121,43 @@ public class QryEval {
 				}
 				// update inverted list for current term
 				if (invertedList.containsKey(term)) {
-					InvertedObject obj = invertedList.get(term);
-					obj.doc_list.add(doc_id);
-					invertedList.put(term, obj);
+					ArrayList<Integer> cur_inverted_list = invertedList.get(term);
+					cur_inverted_list.add(doc_id);
+					invertedList.put(term, cur_inverted_list);
 				} else {
-					ArrayList<Integer> cur_doc_list = new ArrayList();
-					cur_doc_list.add(doc_id);
-					invertedList.put(term, new InvertedObject(mle,cur_doc_list));
+					ArrayList<Integer> cur_inverted_list = new ArrayList();
+					cur_inverted_list.add(doc_id);
+					invertedList.put(term, cur_inverted_list);
 				}
+				mleList.putIfAbsent(term, mle);
+				/**
+				 * // update inverted list for current term if
+				 * (invertedList.containsKey(term)) { InvertedObject obj =
+				 * invertedList.get(term); obj.doc_list.add(doc_id);
+				 * invertedList.put(term, obj); } else { ArrayList
+				 * <Integer> cur_doc_list = new ArrayList();
+				 * cur_doc_list.add(doc_id); invertedList.put(term, new
+				 * InvertedObject(mle,cur_doc_list)); }
+				 */
 			}
 		}
 
 		// update score for docs where tf=0
 		for (String term : invertedList.keySet()) {
-			InvertedObject obj = invertedList.get(term);
-			for (int i=0;i<docNum;i++){
-				int doc_id=score_list.getDocid(i);
-				if (obj.doc_list.contains(doc_id)) continue;
+			// InvertedObject obj = invertedList.get(term);
+			ArrayList<Integer> doc_list = invertedList.get(term);
+			for (int i = 0; i < docNum; i++) {
+				int doc_id = score_list.getDocid(i);
+				// if (obj.doc_list.contains(doc_id)) continue;
+				if (doc_list.contains(doc_id))
+					continue;
 				// if docid is not in inverted list
 				TermVector vec = new TermVector(doc_id, "body");
 				double docScore = score_list.getDocidScore(i);
 				double docLen = Idx.getFieldLength("body", doc_id);
 				long tf = 0;
-				double mle = obj.mle;
+				// double mle = obj.mle;
+				double mle = mleList.get(term);
 				// p(t|d)
 				double Ptd = (tf + fbMu * mle) / (docLen + fbMu);
 				// a form of idf
@@ -202,7 +201,7 @@ public class QryEval {
 	}
 
 	/**
-	 *
+	 * 
 	 * @param fbInitialRankingFile
 	 * @return
 	 */
@@ -238,12 +237,11 @@ public class QryEval {
 	/**
 	 * Allocate the retrieval model and initialize it using parameters from the
 	 * parameter file.
-	 *
+	 * 
 	 * @return The initialized retrieval model
-	 * @throws IOException
-	 *             Error accessing the Lucene index.
+	 * @throws Exception
 	 */
-	private static RetrievalModel initializeRetrievalModel(Map<String, String> parameters) throws IOException {
+	private static RetrievalModel initializeRetrievalModel() throws Exception {
 
 		RetrievalModel model = null;
 		String modelString = parameters.get("retrievalAlgorithm").toLowerCase();
@@ -263,11 +261,124 @@ public class QryEval {
 			float lambda = Float.parseFloat(parameters.get("Indri:lambda"));
 			assert mu >= 0 && lambda >= 0 && lambda <= 1.0;
 			model = new RetrievalModelIndri(mu, lambda);
+		} else if (modelString.equals("letor")) {
+			model = new RetrievalModelLetor(parameters);
+			// initialize training feature vector file
+			FeatureVector fVec = new FeatureVector((RetrievalModelLetor) model);
+			fVec.setPageRank(((RetrievalModelLetor) model).pageRankFile);
+			fVec.setRel(((RetrievalModelLetor) model).trainingQrelsFile);
+			fVec.getFeatures((RetrievalModelLetor) model, 0);
+			trainSVM((RetrievalModelLetor) model);
+			System.out.println("SVM training completed");
+
+			// initialize test feature vector file
+			RetrievalModel bm25Model = new RetrievalModelBM25(((RetrievalModelLetor) model).k_1,
+					((RetrievalModelLetor) model).b, ((RetrievalModelLetor) model).k_3);
+			Map<Integer, Map<String, Integer>> relMap = processQueryFile(parameters.get("queryFilePath"), bm25Model);
+			fVec.setRel(relMap);
+			Map<Integer, List<String>> docList = fVec.getFeatures((RetrievalModelLetor) model, 1);
+
+			testSVM((RetrievalModelLetor) model);
+			System.out.println("SVM test completed");
+
+			getLetorScore(((RetrievalModelLetor) model).testingDocumentScores, parameters.get("trecEvalOutputPath"),
+					model, docList);
 		} else {
 			throw new IllegalArgumentException("Unknown retrieval model " + parameters.get("retrievalAlgorithm"));
 		}
 
 		return model;
+	}
+
+	public static void trainSVM(RetrievalModelLetor model) throws Exception {
+		Process cmdProc = Runtime.getRuntime().exec(new String[] { model.svmRankLearnPath, "-c",
+				String.valueOf(model.svmRankParamC), model.trainingFeatureVectorsFile, model.svmRankModelFile });
+		consume(cmdProc);
+	}
+
+	public static void testSVM(RetrievalModelLetor model) throws Exception {
+		Process cmdProc = Runtime.getRuntime().exec(new String[] { model.svmRankClassifyPath,
+				model.testingFeatureVectorsFile, model.svmRankModelFile, model.testingDocumentScores });
+		consume(cmdProc);
+	}
+
+	public static void consume(Process cmdProc) throws Exception {
+		// The stdout/stderr consuming code MUST be included.
+		// It prevents the OS from running out of output buffer space and
+		// stalling.
+
+		// consume stdout and print it out for debugging purposes
+		BufferedReader stdoutReader = new BufferedReader(new InputStreamReader(cmdProc.getInputStream()));
+		String line;
+		while ((line = stdoutReader.readLine()) != null) {
+			System.out.println(line);
+		}
+		// consume stderr and print it for debugging purposes
+		BufferedReader stderrReader = new BufferedReader(new InputStreamReader(cmdProc.getErrorStream()));
+		while ((line = stderrReader.readLine()) != null) {
+			System.out.println(line);
+		}
+
+		// get the return value from the executable. 0 means success, non-zero
+		// indicates a problem
+		int retValue = cmdProc.waitFor();
+		if (retValue != 0) {
+			throw new Exception("SVM Rank crashed.");
+		}
+	}
+
+	static Queue<Double> readScores(String testingDocumentScores) throws IOException {
+		BufferedReader input = null;
+		// List<Double> svmScores = new ArrayList<>();
+		Queue<Double> svmScores = new ArrayDeque<>();
+
+		try {
+			String docScore = null;
+
+			input = new BufferedReader(new FileReader(testingDocumentScores));
+
+			int count = 0;
+			while ((docScore = input.readLine()) != null) {
+				count++;
+				svmScores.offer(Double.parseDouble(docScore.trim()));
+			}
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		} finally {
+			input.close();
+			return svmScores;
+		}
+	}
+
+	static void getLetorScore(String testingDocumentScores, String trecEvalOutputPath, RetrievalModel model,
+			Map<Integer, List<String>> docList) throws Exception {
+		ArrayDeque<Double> svmScores = (ArrayDeque<Double>) readScores(testingDocumentScores);
+		Iterator<Entry<Integer, List<String>>> iter = docList.entrySet().iterator();
+		BufferedWriter output = new BufferedWriter(new FileWriter(trecEvalOutputPath));
+
+		while (iter.hasNext()) {
+			Entry<Integer, List<String>> entry = iter.next();
+			List<String> docs = entry.getValue();
+			int len = docs.size();
+			ScoreList r = new ScoreList();
+			List<Double> qScores = new ArrayList<>(len);
+			for (int i = 0; i < len; i++) {
+				// System.out.println(entry.getKey() + " " +
+				// svmScores.peekFirst());
+				// System.out.println(docs.get(i));
+				// System.out.println(Idx.getInternalDocid(docs.get(i)));
+				if (!svmScores.isEmpty()) {
+					r.add(Idx.getInternalDocid(docs.get(i)), svmScores.pollFirst());
+				} else {
+					System.out.println("Empty");
+				}
+			}
+			if (r != null) {
+				printResults(String.valueOf(entry.getKey()), r, output);
+				System.out.println();
+			}
+		}
+		output.close();
 	}
 
 	/**
@@ -291,7 +402,7 @@ public class QryEval {
 
 	/**
 	 * Process one query.
-	 *
+	 * 
 	 * @param qString
 	 *            A string that contains a query.
 	 * @param model
@@ -327,9 +438,66 @@ public class QryEval {
 			return null;
 	}
 
+	static Map<Integer, Map<String, Integer>> processQueryFile(String queryFilePath, RetrievalModel model)
+			throws Exception {
+
+		BufferedReader input = null;
+		Map<Integer, Map<String, Integer>> relMap = new HashMap<>();
+		try {
+			String qLine = null;
+
+			input = new BufferedReader(new FileReader(queryFilePath));
+
+			// Each pass of the loop processes one query.
+
+			while ((qLine = input.readLine()) != null) {
+				int d = qLine.indexOf(':');
+
+				if (d < 0) {
+					throw new IllegalArgumentException("Syntax error:  Missing ':' in query line.");
+				}
+
+				printMemoryUsage(false);
+
+				String qid = qLine.substring(0, d);
+				String query = qLine.substring(d + 1);
+
+				System.out.println("Query " + qLine);
+
+				ScoreList r = null;
+
+				String defaultOp = model.defaultQrySopName();
+				query = defaultOp + "(" + query + ")";
+				r = processQuery(query, model);
+
+				Map<String, Integer> topDocs = new HashMap<String, Integer>();
+
+				if (r != null) {
+					r.sort();
+					int result_range = 100;
+					if (r.size() < 100)
+						result_range = r.size();
+					if (r.size() < 1) {
+						System.out.println("\tNo results.");
+					} else {
+						for (int i = 0; i < result_range; i++) {
+							topDocs.put(Idx.getExternalDocid(r.getDocid(i)), 0);
+						}
+					}
+				}
+				relMap.putIfAbsent(Integer.parseInt(qid), topDocs);
+			}
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		} finally {
+			input.close();
+			return relMap;
+		}
+	}
+
 	/**
 	 * Process the query file.
-	 *
+	 * 
 	 * @param queryFilePath
 	 * @param model
 	 * @throws Exception
@@ -396,7 +564,7 @@ public class QryEval {
 					double fbOrigWeight = Double.parseDouble(parameters.get("fbOrigWeight"));
 					String newQuery = "#wand (" + String.valueOf(fbOrigWeight) + " " + query + " "
 							+ String.valueOf(1 - fbOrigWeight) + " " + expandedQuery + " )";
-					System.out.println(" new Query " + newQuery);
+					// System.out.println(" new Query " + newQuery);
 					r = processQuery(newQuery, model);
 				}
 
@@ -455,7 +623,7 @@ public class QryEval {
 	 * Read the specified parameter file, and confirm that the required
 	 * parameters are present. The parameters are returned in a HashMap. The
 	 * caller (or its minions) are responsible for processing them.
-	 *
+	 * 
 	 * @return The parameters, in <key, value> format.
 	 */
 	private static Map<String, String> readParameterFile(String parameterFileName) throws IOException {

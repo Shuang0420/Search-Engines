@@ -108,7 +108,8 @@ public class Idx {
     ScoreDoc[] hits = collector.topDocs().scoreDocs;
 
     if (hits.length < 1) {
-      throw new Exception("External id not found.");
+//      throw new Exception("External id not found.");
+    	return -1;
     } else {
       return hits[0].doc;
     }
