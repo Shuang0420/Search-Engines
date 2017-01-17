@@ -306,10 +306,7 @@ public class FeatureVector {
 						double score = featureVec.containsKey(idx) ? featureVec.get(idx) : Double.MIN_VALUE;
 						if (score != Double.MIN_VALUE) {
 							normVal = (maxVal == minVal) ? 0 : ((score - minVal) / (maxVal - minVal));
-						} // else {
-							// System.out.println("max " + max[idx] + " min " +
-							// min[idx]);
-							// }
+						} 
 						str.append(String.format("\t%d:%.14f", idx, normVal));
 					}
 					str.append(String.format("\t#\t%s\n", externalDocid));

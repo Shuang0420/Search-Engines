@@ -124,4 +124,16 @@ public class ScoreList {
     this.scores.clear();
     this.scores = truncated;
   }
+
+@Override
+public String toString() {
+    StringBuilder sb=new StringBuilder();
+    for (ScoreListEntry entry:scores) {
+        sb.append(entry.docid+"\t"+entry.score+"\n");
+    }
+    return "ScoreList: \n" + sb.toString();
+}
+  
+  
+  
 }

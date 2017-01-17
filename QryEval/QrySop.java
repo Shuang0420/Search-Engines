@@ -2,7 +2,6 @@
  *  Copyright (c) 2016, Carnegie Mellon University.  All Rights Reserved.
  */
 import java.io.*;
-import java.util.ArrayList;
 /**
  *  The root class of all query operators that use a retrieval model
  *  to determine whether a query matches a document and to calculate a
